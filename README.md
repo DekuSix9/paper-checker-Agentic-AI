@@ -1,124 +1,120 @@
-# AI Conference Review Committee: Multi-Agent Paper Review System
+# AI Conference Review Committee
 
-An end-to-end multi-agent research paper review system built with **LangGraph**, **ChromaDB**, and **Streamlit**. The system evaluates uploaded PDF research papers like an IEEE/ACM conference review committee, producing 6 specialist agent reviews and a supervisor Area Chair meta-review with a Human-in-the-Loop approval gate.
+An explainable multi-agent paper review platform: a LangGraph supervisor orchestrates specialist agents that inspect research papers for novelty, methodology, statistical rigor, writing quality, ethics, and AI-generated phrasing. Every review is stored in shared state, traced in the UI, and paused for human approval before the final decision.
+
+New here? [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) covers installation, API keys, the dashboard workflow, sample papers, and troubleshooting.
+
+Architecture and graph execution: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+Agent responsibilities and extension points: [docs/AGENTS.md](docs/AGENTS.md).
 
 ![Architecture Diagram](architecture_diagram.png)
 
----
+## Prerequisites
 
-## 🌟 Key Features
+- Python 3.10 or newer
+- pip
+- Optional Groq API key for LLM-backed novelty and methodology review
+- Optional Tavily API key for live related-paper search
 
-1. **8 Specialized Agents**:
-   - **Paper Ingestor** (`agents/ingestor.py`): PDF section extraction, table/figure parsing, ChromaDB indexing.
-   - **Novelty Checker** (`agents/novelty.py`): Literature search (Tavily), embedding similarity, contribution assessment.
-   - **Methodology Reviewer** (`agents/methodology.py`): RAG retrieval over paper chunks, reproducibility & baseline checks.
-   - **Statistical Rigor Checker** (`agents/stats_rigor.py`): Regex extraction of p-values, sample sizes ($n$), CIs, effect sizes, variance checks.
-   - **Writing Quality Reviewer** (`agents/writing_quality.py`): Flesch-Kincaid readability scoring, section structure & flow.
-   - **Ethics/Plagiarism Flagging Agent** (`agents/ethics.py`): Text similarity, IRB/consent statements, dual-use risk, ethics veto logic.
-   - **AI Content & Sentence Detection Agent** (`agents/ai_detector.py`): Sentence-level perplexity/burstiness proxies, LLM phrase detection, synthetic sentence ratio scoring.
-   - **Area Chair Supervisor** (`agents/area_chair.py`): Weighted rubric scoring (Methodology 25%, Novelty 20%, Stats 20%, Writing 10%, Ethics 15%, AI Detection 10%), meta-review synthesis, HITL approval.
+The application has local analysis and offline fallbacks, so it can run without external API keys. See [Getting Started](docs/GETTING_STARTED.md) for the exact environment configuration.
 
-2. **Human-in-the-Loop (HITL) Gate**:
-   - LangGraph pauses execution before decision commitment via `interrupt_before=["finalize"]`.
-   - Streamlit controls: Approve, Edit Meta-Review, Single Agent Retry, or Reject Outright.
+## Quickstart
 
-3. **9 Interactive Streamlit UI Tabs**:
-   - 📊 **Dashboard**: Active committee status, progress bar, decision metrics.
-   - 🔍 **Live Trace**: Expandable real-time agent execution step log.
-   - 💬 **Comm Log**: State diff showing read inputs and written state keys per node.
-   - 🕸️ **Graph Topology**: Interactive Mermaid execution topology rendering.
-   - 💰 **Token / Cost**: Agent token breakdown & total estimated cost (USD).
-   - 📋 **Logs & Errors**: Filterable structured JSON log viewer (`logs/execution.json`).
-   - 🧠 **Memory Viewer**: ChromaDB collection browser (`paper_chunks`, `related_work`, `past_reviews`).
-   - 🛑 **Human Controls**: Approve, edit meta-review text, or re-invoke individual agents.
-   - 📄 **Final Report**: Rendered IEEE-style decision report with Markdown and PDF export.
-
----
-
-## 🚀 Quickstart Guide
-
-### 1. Installation
-
-```bash
-# Clone repository
-git clone <your-repo-url>
-cd paper-review-committee
-
-# Install requirements
+```powershell
+cd D:\Review_paper_Checker
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+python -m streamlit run ui/app.py
 ```
 
-### 2. Environment Setup (Optional)
+Open the local URL printed by Streamlit. The default is `http://localhost:8501`; if the port is busy, Streamlit selects another available port.
 
-Copy `.env.example` to `.env` and set optional API keys for online Tavily search or specific LLM providers:
+Run the test suite:
 
-```bash
-cp .env.example .env
+```powershell
+python -m pytest -q
 ```
 
-*(Note: The system contains intelligent offline fallbacks and works out-of-the-box even without API keys!)*
+## Review Workflow
 
-### 3. Launching the App
+Upload a PDF, TXT, or Markdown paper, or choose a bundled benchmark paper. The committee then:
 
-```bash
-streamlit run ui/app.py
+1. Extracts the paper text and academic sections.
+2. Indexes paper chunks in ChromaDB using a content-derived paper identifier.
+3. Runs six specialist reviews over the shared `ReviewState`.
+4. Aggregates findings with the Area Chair weighted rubric.
+5. Pauses before finalization for human approval, editing, retry, or rejection.
+6. Exports the final review as Markdown or PDF.
+
+The Streamlit dashboard includes Dashboard, Live Trace, Communication Log, Graph Topology, Token / Cost, Logs & Errors, Memory Viewer, Human Controls, and Final Report tabs.
+
+## Review Agents
+
+| Agent | Role |
+| --- | --- |
+| Paper Ingestor | Extracts text, parses sections, and indexes chunks. |
+| Novelty Checker | Searches related work and evaluates contribution positioning. |
+| Methodology Reviewer | Checks reproducibility, baselines, ablations, datasets, and experiments. |
+| Statistical Rigor Checker | Extracts and evaluates p-values, sample sizes, confidence intervals, and error reporting. |
+| Writing Quality Reviewer | Measures readability and checks structure and captions. |
+| Ethics/Plagiarism Agent | Checks ethics disclosures, conflicts, dual-use risk, and text overlap. |
+| AI Content Detector | Estimates synthetic sentence patterns and writing authenticity. |
+| Area Chair Supervisor | Applies the weighted rubric and drafts the committee decision. |
+
+The Area Chair rubric weights methodology at 25%, novelty at 20%, statistical rigor at 20%, writing at 10%, ethics at 15%, and AI detection at 10%. High-risk ethics flags can veto the weighted score.
+
+## LLM Providers
+
+Novelty and methodology agents use Groq when `GROQ_API_KEY` is configured. The default model is `openai/gpt-oss-20b`, and it can be overridden with `GROQ_MODEL`.
+
+The Token / Cost tab records whether each row came from `groq`, `heuristic_fallback`, or local deterministic analysis. A fallback is reported explicitly when a provider is unavailable or returns invalid structured output; the rest of the review continues.
+
+```dotenv
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=openai/gpt-oss-20b
+TAVILY_API_KEY=your_tavily_api_key
 ```
 
-Open `http://localhost:8501` in your browser.
+## Memory And Observability
 
----
+- ChromaDB persists paper chunks under `memory/chroma_db/`.
+- LangGraph checkpoints active human-review threads through the local SQLite checkpointer.
+- Structured execution logs are written to `logs/execution.json`.
+- Uploaded papers are stored under `data/uploads/` for the current workspace.
 
-## 🧪 Running Automated Tests
+## Safety Defaults
 
-Run the full pytest suite:
+- The system does not execute external actions or publish decisions automatically.
+- Every review pauses before final decision commitment.
+- Human feedback and approval are recorded in the review state.
+- API keys are loaded from `.env` and must never be committed.
+- Statistical, ethics, and AI-detection results are review aids, not substitutes for expert judgment.
 
-```bash
-python -m pytest tests/
-```
+## Development
 
----
+| Command | Purpose |
+| --- | --- |
+| `python -m pytest -q` | Run the complete test suite. |
+| `python run_tests.py` | Run tests through the project test runner. |
+| `python -m streamlit run ui/app.py` | Start the review dashboard. |
+| `python generate_diagram.py` | Regenerate the architecture diagram. |
 
-## 📐 Repository Structure
+## Repository Structure
 
-```
-paper-review-committee/
-├── agents/
-│   ├── __init__.py
-│   ├── ingestor.py          # Paper Ingestor agent
-│   ├── novelty.py           # Novelty Checker agent
-│   ├── methodology.py       # Methodology Reviewer agent
-│   ├── stats_rigor.py       # Statistical Rigor Checker agent
-│   ├── writing_quality.py   # Writing Quality Reviewer agent
-│   ├── ethics.py            # Ethics/Plagiarism Flagging agent
-│   └── area_chair.py        # Area Chair (Supervisor) agent
-├── graph/
-│   ├── __init__.py
-│   ├── state.py             # ReviewState TypedDict
-│   └── build_graph.py       # StateGraph topology & interrupt_before
-├── tools/
-│   ├── __init__.py
-│   ├── pdf_tools.py         # PyMuPDF section extraction
-│   ├── search_tools.py      # Tavily web search wrapper
-│   ├── rag_tools.py         # Chroma indexing & retrieval
-│   └── stats_tools.py       # Regex statistical claim extraction
-├── memory/
-│   ├── __init__.py
-│   ├── vector_store.py      # Chroma client & collection manager
-│   └── checkpointer.py      # LangGraph SqliteSaver checkpointer
-├── logging_utils/
-│   ├── __init__.py
-│   └── logger.py            # Structured JSON logger & cost estimator
-├── ui/
-│   ├── app.py               # Streamlit multi-tab entry point
-│   └── components/          # 9 UI tab view components
-├── data/
-│   ├── sample_papers/      # Benchmark sample paper inputs
-│   └── uploads/            # Uploaded PDF workspace
-├── logs/                    # Execution logs
-├── tests/                   # Pytest smoke and state tests
-├── .env.example
-├── .gitignore
+```text
+paper-checker-Agentic-AI/
+├── agents/                 # Ingestor, specialist, and supervisor agents
+├── data/sample_papers/     # Bundled benchmark papers
+├── docs/                   # Getting started, architecture, and agent guides
+├── graph/                  # ReviewState and LangGraph topology
+├── logging_utils/          # Structured execution logging and cost estimates
+├── memory/                 # ChromaDB vector store and graph checkpointer
+├── tests/                  # State, tool, and graph smoke tests
+├── tools/                  # PDF, search, RAG, stats, and provider helpers
+├── ui/                     # Streamlit app and dashboard components
 ├── requirements.txt
-├── README.md
-└── architecture_diagram.png
+└── README.md
 ```
