@@ -1,4 +1,5 @@
 from datetime import datetime
+import hashlib
 from graph.state import ReviewState
 from tools.pdf_tools import extract_pdf_data
 from tools.rag_tools import index_paper_chunks
@@ -18,13 +19,14 @@ def run(state: ReviewState) -> dict:
         structured = extracted["paper_structured"]
 
         # Chunk and index into ChromaDB
-        chunk_count = index_paper_chunks(raw_text, paper_id=structured.get("title", "paper_1")[:30])
+        paper_id = hashlib.sha256(raw_text.encode("utf-8", errors="ignore")).hexdigest()[:16]
+        chunk_count = index_paper_chunks(raw_text, paper_id=paper_id)
 
         trace_entry = {
             "agent": agent_name,
             "timestamp": datetime.now().isoformat(),
             "status": "success",
-            "message": f"Successfully parsed paper title '{structured.get('title')}' into {len(structured.get('sections', {}))} sections and {chunk_count} vector chunks."
+            "message": f"Successfully parsed paper title '{structured.get('title')}' into {len(structured.get('sections', {}))} sections and {chunk_count} vector chunks (paper id: {paper_id})."
         }
 
         StructuredLogger.log(agent_name, "finish_ingestion", {"chunk_count": chunk_count, "title": structured.get("title")})

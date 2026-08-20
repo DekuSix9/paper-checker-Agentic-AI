@@ -8,7 +8,12 @@ CHROMA_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 class FastLocalEmbeddingFunction:
     """Fast local embedding function compatible with ChromaDB requiring 0 external downloads."""
 
-    def _embed(self, texts: List[str]) -> List[List[float]]:
+    def __call__(self, input: Any) -> Any:
+        if isinstance(input, str):
+            texts = [input]
+        else:
+            texts = list(input or [])
+
         embeddings = []
         for text in texts:
             vec = [0.0] * 384
@@ -20,19 +25,11 @@ class FastLocalEmbeddingFunction:
             embeddings.append([v / norm for v in vec])
         return embeddings
 
-    def __call__(self, input: Any = None, texts: Any = None) -> Any:
-        inp = input if input is not None else texts
-        if isinstance(inp, str):
-            return self._embed([inp])
-        return self._embed(list(inp or []))
+    def embed_query(self, input: Any) -> List[List[float]]:
+        return self(input if isinstance(input, list) else [input])
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return self._embed(texts)
-
-    def embed_query(self, input: Any = None, query: Any = None) -> List[float]:
-        target = input if input is not None else query
-        q_str = target if isinstance(target, str) else str(target or "")
-        return self._embed([q_str])[0]
+    def embed_documents(self, input: List[str]) -> List[List[float]]:
+        return self(input)
 
     def name(self) -> str:
         return "FastLocalEmbeddingFunction"

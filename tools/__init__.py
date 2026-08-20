@@ -4,6 +4,7 @@ from .search_tools import search_related_papers
 from .rag_tools import index_paper_chunks, query_paper_chunks
 from .stats_tools import extract_statistical_claims, run_statistical_checks
 from .ai_detect_tools import analyze_sentence_ai_content
+from .groq_tools import call_groq_llm
 
 __all__ = [
     "extract_pdf_data",
@@ -12,5 +13,6 @@ __all__ = [
     "query_paper_chunks",
     "extract_statistical_claims",
     "run_statistical_checks",
-    "analyze_sentence_ai_content"
+    "analyze_sentence_ai_content",
+    "call_groq_llm"
 ]

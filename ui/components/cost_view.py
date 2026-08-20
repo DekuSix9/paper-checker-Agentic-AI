@@ -26,3 +26,7 @@ def render_cost_view(state: dict):
     st.divider()
     st.markdown("#### Token Breakdown per Specialist Agent")
     st.dataframe(df, use_container_width=True)
+
+    api_calls = int(df["api_used"].sum()) if "api_used" in df.columns else 0
+    fallback_calls = int((df["provider"] == "heuristic_fallback").sum()) if "provider" in df.columns else 0
+    st.caption(f"Groq API-backed reviews: {api_calls}. Local fallback reviews: {fallback_calls}.")
