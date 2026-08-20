@@ -1,0 +1,21 @@
+# Environment
+.env
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Project output data
+data/uploads/
+logs/
+memory/checkpoints.db
+memory/chroma_db/
+*.pdf
+
+# Streamlit
+.streamlit/

@@ -1,0 +1,26 @@
+Autonomous LLM-Based Multi-Agent Consensus in Complex Reasoning Tasks
+
+Abstract
+Autonomous multi-agent systems offer unprecedented reasoning depth for complex problem-solving. This paper introduces ConsensusGraph, a novel multi-agent graph architecture designed to achieve high agreement and low hallucination rates across diverse mathematical and code verification benchmarks.
+
+1. Introduction
+Large Language Models (LLMs) often exhibit brittleness when solving long-horizon reasoning tasks in isolation. Recent developments highlight the benefits of multi-agent debate and structured collaboration. We propose ConsensusGraph, which structures agent interaction into directed acyclic topology with dynamic voting edges.
+
+2. Related Work
+Prior approaches like AgentVerse and AutoGen utilize fixed round-robin communication channels. In contrast, ConsensusGraph dynamically scales agent topology based on runtime confidence scores.
+
+3. Methodology
+Our framework deploys five specialized roles: Proposer, Verifier, Statistician, Critic, and Consensus Arbiter.
+Training details & Hyperparameters: We fine-tune Llama-3 70B using RLHF with batch size = 64, learning rate = 2e-5, weight decay = 0.01, and 5000 warmup steps. Source code and training logs are publicly released at https://github.com/example/consensus-graph.
+
+4. Experiments & Results
+We evaluate ConsensusGraph on GSM8K, MATH, and HumanEval datasets across 10 independent evaluation runs.
+- Accuracy on GSM8K: 92.4% ± 0.6% (p < 0.001, t-test vs AutoGen baseline).
+- Cohen's d effect size = 1.42, 95% CI [1.25, 1.59] across n = 500 evaluation samples.
+- Variance and standard deviation error bars are presented in Table 1 and Figure 3.
+
+5. Ethical Considerations & Open Science
+No human subjects or sensitive personal data were involved in this work. All models were trained on open-source datasets. We include a full dual-use risk assessment and conflict of interest statement.
+
+6. Conclusion
+ConsensusGraph significantly improves multi-agent reasoning accuracy while reducing variance across complex benchmarks.
